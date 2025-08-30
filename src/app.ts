@@ -14,14 +14,14 @@ app.use(cors({
 
 app.use(express.json());
 
-// Session configuration for Passport
+
 app.use(session({
   secret: process.env.SESSION_SECRET || 'your_session_secret',
   resave: false,
   saveUninitialized: false
 }));
 
-// Initialize Passport
+
 app.use(passport.initialize());
 app.use(passport.session());
 

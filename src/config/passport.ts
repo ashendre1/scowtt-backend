@@ -16,7 +16,6 @@ passport.use(new GoogleStrategy({
     });
 
     if (user) {
-      // User exists - update profile photo with latest from Google
       user = await prisma.user.update({
         where: { googleId: profile.id },
         data: {
@@ -26,14 +25,13 @@ passport.use(new GoogleStrategy({
       return done(null, user);
     }
 
-    // Create new user with Google data
     user = await prisma.user.create({
       data: {
         googleId: profile.id,
         username: profile.displayName || null,
         email: profile.emails?.[0]?.value || null,
         profilePhoto: profile.photos?.[0]?.value || null,
-        password: null // Explicitly set password as null for Google users
+        password: null 
       }
     });
 

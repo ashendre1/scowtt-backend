@@ -8,12 +8,12 @@ import OpenAI from 'openai';
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
 
-// Initialize OpenAI
+
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-// Helper function to get a fun fact
+
 async function getFunFactForMovie(movieName: string): Promise<string> {
   try {
     const prompt = `Give me one interesting and lesser-known fun fact about the movie "${movieName}". Keep it concise and engaging, around 1-2 sentences. Only respond with the fun fact, nothing else. Make it different from common facts.`;
@@ -31,7 +31,7 @@ async function getFunFactForMovie(movieName: string): Promise<string> {
         }
       ],
       max_tokens: 150,
-      temperature: 0.8 // Higher temperature for more variety
+      temperature: 0.8 
     });
 
     return completion.choices[0]?.message?.content?.trim() || '';
@@ -41,7 +41,7 @@ async function getFunFactForMovie(movieName: string): Promise<string> {
   }
 }
 
-// Signup
+
 router.post('/signup', async (req, res) => {
   const { username, password } = req.body;
 
@@ -59,7 +59,7 @@ router.post('/signup', async (req, res) => {
   res.json({ token, user: { id: user.id, username: user.username } });
 });
 
-// Login
+
 router.post('/login', async (req, res) => {
   const { username, password } = req.body;
   console.log(username, password);

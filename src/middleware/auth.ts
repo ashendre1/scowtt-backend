@@ -26,7 +26,6 @@ export function authenticate(req: Request, res: Response, next: NextFunction) {
   }
 }
 
-// Optional: Create a middleware that logs user info
 export function logUser(req: Request, res: Response, next: NextFunction) {
   const user = (req as any).user;
   if (user) {
