@@ -19,7 +19,6 @@ export function authenticate(req, res, next) {
         res.status(401).json({ error: 'Invalid token' });
     }
 }
-// Optional: Create a middleware that logs user info
 export function logUser(req, res, next) {
     const user = req.user;
     if (user) {

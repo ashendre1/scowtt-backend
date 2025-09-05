@@ -6,11 +6,9 @@ import passport from '../config/passport.js';
 import OpenAI from 'openai';
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
-// Initialize OpenAI
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY
 });
-// Helper function to get a fun fact
 async function getFunFactForMovie(movieName) {
     try {
         const prompt = `Give me one interesting and lesser-known fun fact about the movie "${movieName}". Keep it concise and engaging, around 1-2 sentences. Only respond with the fun fact, nothing else. Make it different from common facts.`;
@@ -27,7 +25,7 @@ async function getFunFactForMovie(movieName) {
                 }
             ],
             max_tokens: 150,
-            temperature: 0.8 // Higher temperature for more variety
+            temperature: 0.8
         });
         return completion.choices[0]?.message?.content?.trim() || '';
     }
@@ -36,29 +34,25 @@ async function getFunFactForMovie(movieName) {
         return '';
     }
 }
-// Signup
 router.post('/signup', async (req, res) => {
-    const { username, password } = req.body;
-    if (!username || !password)
+    const { email, password } = req.body;
+    if (!email || !password)
         return res.status(400).json({ error: 'Username and password required' });
-    const existingUser = await prisma.user.findUnique({ where: { username } });
+    const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser)
-        return res.status(409).json({ error: 'Username already in use' });
+        return res.status(409).json({ error: 'Email already in use' });
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = await prisma.user.create({
-        data: { username, password: hashedPassword }
+        data: { email, password: hashedPassword }
     });
     const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
     res.json({ token, user: { id: user.id, username: user.username } });
 });
-// Login
 router.post('/login', async (req, res) => {
-    const { username, password } = req.body;
-    console.log(username, password);
-    console.log(req);
-    if (!username || !password)
+    const { email, password } = req.body;
+    if (!email || !password)
         return res.status(400).json({ error: 'Email and password required' });
-    const user = await prisma.user.findUnique({ where: { username } });
+    const user = await prisma.user.findUnique({ where: { email } });
     if (!user || !user.password)
         return res.status(401).json({ error: 'Invalid credentials' });
     const valid = await bcrypt.compare(password, user.password);
@@ -68,28 +62,26 @@ router.post('/login', async (req, res) => {
     if (user.favoriteMovie) {
         funFact = await getFunFactForMovie(user.favoriteMovie);
     }
+    console.log("here is the favorite moveie for ", funFact);
     const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
     res.json({
         token,
         user: {
             id: user.id,
-            username: user.username,
+            email: user.email,
             movie: user.favoriteMovie || '',
             funFact: funFact
         }
     });
 });
-// Google OAuth routes
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 router.get('/google/callback', passport.authenticate('google', { session: false }), async (req, res) => {
     const user = req.user;
-    // Generate JWT token
     const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
     let funFact = '';
     if (user.favoriteMovie) {
         funFact = await getFunFactForMovie(user.favoriteMovie);
     }
-    // Redirect to frontend dashboard with token, user data, and fun fact
     const frontendURL = process.env.FRONTEND_URL || 'http://localhost:3000';
     const params = new URLSearchParams({
         token,

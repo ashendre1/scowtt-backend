@@ -140,7 +140,7 @@ router.get('/refresh-fact', authenticate, async (req, res) => {
         }
       ],
       max_tokens: 150,
-      temperature: 0.9 // High temperature for variety
+      temperature: 0.9 
     });
 
     const funFact = completion.choices[0]?.message?.content?.trim();

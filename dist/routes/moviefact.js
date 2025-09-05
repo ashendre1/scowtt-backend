@@ -3,25 +3,21 @@ import OpenAI from 'openai';
 import { authenticate } from '../middleware/auth.js';
 import prisma from '../prisma/client.js';
 const router = Router();
-// Initialize OpenAI
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY
 });
-// Get a fun fact about a movie using OpenAI and save movie to user
 router.post('/fun-fact', authenticate, async (req, res) => {
     try {
         const { movieName } = req.body;
-        const user = req.user; // Get authenticated user from JWT
+        const user = req.user;
         if (!movieName) {
             return res.status(400).json({ error: 'Movie name is required' });
         }
         console.log(`User ${user.userId} requesting fun fact for: ${movieName}`);
-        // Update user's favorite movie in database
         await prisma.user.update({
             where: { id: user.userId },
             data: { favoriteMovie: movieName.trim() }
         });
-        // Create a prompt for OpenAI to generate a fun fact
         const prompt = `Give me one interesting and lesser-known fun fact about the movie "${movieName}". Keep it concise and engaging, around 1-2 sentences. Only respond with the fun fact, nothing else.`;
         const completion = await openai.chat.completions.create({
             model: "gpt-3.5-turbo",
@@ -52,18 +48,15 @@ router.post('/fun-fact', authenticate, async (req, res) => {
     }
     catch (error) {
         console.error('OpenAI fun fact error:', error);
-        // Handle specific OpenAI errors
         if (error instanceof Error && error.message.includes('API key')) {
             return res.status(500).json({ error: 'OpenAI API configuration error' });
         }
-        // Handle Prisma/Database errors
         if (error instanceof Error && error.message.includes('Record to update not found')) {
             return res.status(404).json({ error: 'User not found' });
         }
         res.status(500).json({ error: 'Unable to get fun fact at this time' });
     }
 });
-// Optional: Get user's current favorite movie
 router.get('/my-favorite', authenticate, async (req, res) => {
     try {
         const user = req.user;
@@ -84,11 +77,9 @@ router.get('/my-favorite', authenticate, async (req, res) => {
         res.status(500).json({ error: 'Unable to get favorite movie' });
     }
 });
-// Get a fresh fun fact for user's current favorite movie (for refresh)
 router.get('/refresh-fact', authenticate, async (req, res) => {
     try {
         const user = req.user;
-        // Get user's current favorite movie
         const userData = await prisma.user.findUnique({
             where: { id: user.userId },
             select: { favoriteMovie: true, username: true }
@@ -103,7 +94,6 @@ router.get('/refresh-fact', authenticate, async (req, res) => {
                 favoriteMovie: ''
             });
         }
-        // Generate a new fun fact with higher randomness
         const prompt = `Give me one interesting and lesser-known fun fact about the movie "${userData.favoriteMovie}". Keep it concise and engaging, around 1-2 sentences. Only respond with the fun fact, nothing else. Make it unique and different from common trivia.`;
         const completion = await openai.chat.completions.create({
             model: "gpt-3.5-turbo",
@@ -118,7 +108,7 @@ router.get('/refresh-fact', authenticate, async (req, res) => {
                 }
             ],
             max_tokens: 150,
-            temperature: 0.9 // High temperature for variety
+            temperature: 0.9
         });
         const funFact = completion.choices[0]?.message?.content?.trim();
         res.json({

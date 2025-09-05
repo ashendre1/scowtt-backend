@@ -43,16 +43,16 @@ async function getFunFactForMovie(movieName: string): Promise<string> {
 
 
 router.post('/signup', async (req, res) => {
-  const { username, password } = req.body;
+  const { email, password } = req.body;
 
-  if (!username || !password) return res.status(400).json({ error: 'Username and password required' });
+  if (!email || !password) return res.status(400).json({ error: 'Username and password required' });
 
-  const existingUser = await prisma.user.findUnique({ where: { username } });
-  if (existingUser) return res.status(409).json({ error: 'Username already in use' });
+  const existingUser = await prisma.user.findUnique({ where: { email } });
+  if (existingUser) return res.status(409).json({ error: 'Email already in use' });
 
   const hashedPassword = await bcrypt.hash(password, 10);
   const user = await prisma.user.create({
-    data: { username, password: hashedPassword }
+    data: { email, password: hashedPassword }
   });
 
   const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
@@ -61,12 +61,10 @@ router.post('/signup', async (req, res) => {
 
 
 router.post('/login', async (req, res) => {
-  const { username, password } = req.body;
-  console.log(username, password);
-  console.log(req);
-  if (!username || !password) return res.status(400).json({ error: 'Email and password required' });
+  const { email, password } = req.body;
+  if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
 
-  const user = await prisma.user.findUnique({ where: { username } });
+  const user = await prisma.user.findUnique({ where: { email } });
   if (!user || !user.password) return res.status(401).json({ error: 'Invalid credentials' });
 
   const valid = await bcrypt.compare(password, user.password);
@@ -77,19 +75,20 @@ router.post('/login', async (req, res) => {
     funFact = await getFunFactForMovie(user.favoriteMovie);
   }
 
+  console.log("here is the favorite moveie for ", funFact)
+
   const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
   res.json({ 
     token, 
     user: { 
       id: user.id, 
-      username: user.username, 
+      email: user.email, 
       movie: user.favoriteMovie || '',
       funFact: funFact
     } 
   });
 });
 
-// Google OAuth routes
 router.get('/google', 
   passport.authenticate('google', { scope: ['profile', 'email'] })
 );
@@ -99,7 +98,6 @@ router.get('/google/callback',
   async (req, res) => {
     const user = req.user as any;
     
-    // Generate JWT token
     const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
     
     let funFact = '';
@@ -107,7 +105,6 @@ router.get('/google/callback',
       funFact = await getFunFactForMovie(user.favoriteMovie);
     }
     
-    // Redirect to frontend dashboard with token, user data, and fun fact
     const frontendURL = process.env.FRONTEND_URL || 'http://localhost:3000';
     const params = new URLSearchParams({
       token,
